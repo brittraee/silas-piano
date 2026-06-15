@@ -81,9 +81,18 @@ npm run serve        # python3 http.server on :8000 for manual testing
 - Both resolve `index.html` from repo root regardless of cwd.
 
 ## Deploy (iPad target)
-GitHub Pages: push with `index.html` at repo root → Settings → Pages → deploy from `main` /root.
-Open the Pages URL in Safari → Share → **Add to Home Screen**. https there also unblocks the
-v2 mic feature.
+**Live:** https://brittraee.github.io/silas-piano/ — public GitHub Pages repo `brittraee/silas-piano`,
+served from `main` / root over https.
+- **Update = push:** edit files → commit → `git push`; Pages auto-rebuilds in ~30–60s.
+- On the iPad: open the live URL in Safari → Share → **Add to Home Screen**. Re-add after an
+  icon change (iOS snapshots the icon at add-time).
+- https here is what unlocks the future mic-calibration feature (getUserMedia) and a service
+  worker (not yet added — the next lever if cold-launch still isn't instant).
+- `npm run serve` (LAN http on :8000) still works for quick local testing, but the iPad should
+  use the Pages URL so launch no longer depends on the Mac being awake.
+
+PWA assets: `manifest.webmanifest` + `icon-152/180/512.png` (generated from `icon.svg` via
+`rsvg-convert`); `apple-touch-icon` links live in `<head>`.
 
 ## Roadmap / next features
 1. **Compose & save** — child taps a sequence; app plays it back and adds it as a new card.
