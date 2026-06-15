@@ -1,0 +1,16 @@
+{
+  "name": "Silas's Piano",
+  "short_name": "Silas",
+  "description": "Piano + Kalimba, Follow-the-glow — for Silas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c1a26",
+  "theme_color": "#1c1a26",
+  "icons": [
+    { "src": "icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

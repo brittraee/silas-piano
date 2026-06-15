@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Silas">
+<meta name="theme-color" content="#1c1a26">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Silas's Piano</title>
+<style>
+  :root{
+    --k1:#E5392E; --k2:#F47B20; --k3:#F4C430; --k4:#7FC241;
+    --k5:#34B6A8; --k6:#3FBEE6; --k7:#2E63D6; --k8:#E83E8C;
+    --bg:#1c1a26; --bg2:#262338; --ink:#fdfbff; --muted:#b9b3d0;
+    --wood:#9a6b3f; --wood2:#7d5430;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:radial-gradient(120% 120% at 50% 0%, #2a2740 0%, var(--bg) 60%);
+    color:var(--ink); font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden; touch-action:manipulation;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .bar{display:flex; align-items:center; gap:8px; padding:10px 12px; flex:0 0 auto;}
+  .bar .title{font-size:1.05rem; font-weight:800; letter-spacing:.3px;}
+  .bar .spacer{flex:1;}
+  .chip{
+    background:var(--bg2); color:var(--ink); border:1px solid #3a3556;
+    border-radius:999px; padding:8px 13px; font-size:.88rem; font-weight:700;
+    cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .chip:active{transform:scale(.96);}
+  .chip.on{background:#4c8bf5; border-color:#4c8bf5;}
+
+  /* instrument switch */
+  .switch{display:flex; background:var(--bg2); border:1px solid #3a3556; border-radius:999px; overflow:hidden;}
+  .switch button{background:none; border:none; color:var(--muted); font-family:inherit; font-weight:800;
+    font-size:.88rem; padding:8px 14px; cursor:pointer;}
+  .switch button.on{background:#7a5cff; color:#fff;}
+
+  .songbar{display:flex; gap:8px; overflow-x:auto; padding:4px 12px 8px; flex:0 0 auto; scrollbar-width:none;}
+  .songbar::-webkit-scrollbar{display:none;}
+  .song{flex:0 0 auto; background:var(--bg2); border:1px solid #3a3556; color:var(--ink);
+    border-radius:12px; padding:9px 13px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .song:active{transform:scale(.97);}
+  .song.on{background:#7a5cff; border-color:#7a5cff;}
+  .song .beta{font-size:.6rem; background:#ffce4d; color:#3a2a00; border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:middle;}
+
+  .coach{flex:0 0 auto; text-align:center; min-height:32px; padding:2px 12px; font-size:1.02rem; font-weight:700; color:var(--muted);}
+  .coach b{color:var(--ink);}
+  .dots{display:flex; gap:5px; justify-content:center; flex-wrap:wrap; padding:2px 12px 4px; min-height:14px;}
+  .dot{width:8px; height:8px; border-radius:50%; background:#3a3556;}
+  .dot.done{background:#5ad17a;} .dot.now{background:#ffce4d; transform:scale(1.35);}
+
+  .stage{flex:1 1 auto; display:flex; align-items:stretch; padding:6px 12px 16px; min-height:0;}
+
+  /* ---------- piano ---------- */
+  .keys{display:flex; gap:8px; width:100%;}
+  .key{flex:1; border:none; border-radius:14px 14px 22px 22px; position:relative; cursor:pointer; color:#fff; font-family:inherit;
+    box-shadow:0 6px 0 rgba(0,0,0,.28), inset 0 3px 0 rgba(255,255,255,.28);
+    display:flex; align-items:flex-end; justify-content:center; padding-bottom:14px;
+    transition:transform .04s, box-shadow .04s, filter .12s;}
+  .key .lab{font-size:clamp(1.1rem,4.5vw,2.1rem); font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .key:active,.key.down{transform:translateY(5px); box-shadow:0 1px 0 rgba(0,0,0,.28), inset 0 3px 0 rgba(255,255,255,.22);}
+  .k1{background:var(--k1);} .k2{background:var(--k2);} .k3{background:var(--k3);} .k4{background:var(--k4);}
+  .k5{background:var(--k5);} .k6{background:var(--k6);} .k7{background:var(--k7);} .k8{background:var(--k8);}
+  .key.k3 .lab{color:#5a4a10; text-shadow:none;}
+  .key.target{filter:brightness(1.12);}
+  .key.target::after{content:""; position:absolute; inset:-4px; border-radius:16px 16px 24px 24px;
+    border:4px solid #fff; box-shadow:0 0 22px 6px rgba(255,255,255,.75); animation:pulse 1s ease-in-out infinite;}
+  .key.nudge{animation:nudge .45s ease;}
+
+  /* ---------- kalimba ---------- */
+  .kalimba{width:100%; align-self:center; background:linear-gradient(180deg,var(--wood),var(--wood2));
+    border-radius:18px; padding:14px 10px 10px; box-shadow:inset 0 3px 8px rgba(0,0,0,.28), 0 6px 0 rgba(0,0,0,.25);
+    display:flex; align-items:flex-end; justify-content:center; gap:3px; height:100%;}
+  .ktine{flex:1 1 0; min-width:0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    cursor:pointer; position:relative; background:none; border:none; padding:0;}
+  .ktine .bar{width:72%; max-width:30px; border-radius:6px 6px 3px 3px; position:relative;
+    background:linear-gradient(180deg,#f4f6f8,#aeb6bf 60%,#8b939c); box-shadow:0 2px 3px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.6);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:6px; gap:4px;
+    transition:transform .05s, filter .12s;}
+  .ktine .dot{width:min(60%,16px); aspect-ratio:1; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.55);}
+  .ktine .knum{font-size:clamp(.55rem,1.7vw,.9rem); font-weight:800; color:#3a3a3a; line-height:1; text-align:center;}
+  .ktine .knum sup{font-size:.7em;}
+  .ktine:active .bar,.ktine.down .bar{transform:translateY(4px); filter:brightness(.95);}
+  .d1{background:var(--k1);} .d2{background:var(--k2);} .d3{background:var(--k3);} .d4{background:var(--k4);}
+  .d5{background:var(--k5);} .d6{background:var(--k6);} .d7{background:var(--k7);}
+  .ktine.target .bar{filter:brightness(1.06); box-shadow:0 0 16px 5px rgba(255,255,255,.85), inset 0 2px 0 rgba(255,255,255,.6);}
+  .ktine.target .dot{animation:pulse 1s ease-in-out infinite;}
+  .ktine.nudge .bar{animation:nudge .45s ease;}
+
+  @keyframes pulse{0%,100%{opacity:.55;} 50%{opacity:1;}}
+  @keyframes nudge{0%,100%{transform:translateY(0);}40%{transform:translateY(-8px);}70%{transform:translateY(0);}}
+
+  .cele{position:fixed; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; z-index:30;}
+  .cele .msg{background:rgba(28,26,38,.92); border:2px solid #ffce4d; color:#fff; padding:18px 30px; border-radius:18px;
+    font-size:1.6rem; font-weight:800; opacity:0; transform:scale(.6); transition:.25s;}
+  .cele.show .msg{opacity:1; transform:scale(1);}
+  .confetti{position:fixed; width:11px; height:14px; top:-20px; z-index:29; border-radius:2px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .key.target::after,.ktine.target .dot{animation:none; opacity:.98;}
+    .key.nudge,.ktine.nudge .bar{animation:none; filter:brightness(1.3);}
+    .confetti{display:none;}
+  }
+
+  .gate{position:fixed; inset:0; z-index:50; background:radial-gradient(120% 120% at 50% 0%, #2a2740, #15131d);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;}
+  .gate h1{margin:0; font-size:2rem;} .gate p{margin:0; color:var(--muted);}
+  .gate .go{margin-top:6px; background:#7a5cff; color:#fff; border:none; border-radius:16px; padding:16px 40px;
+    font-size:1.3rem; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:0 6px 0 #5a3fd6;}
+  .gate .go:active{transform:translateY(4px); box-shadow:0 2px 0 #5a3fd6;}
+  .gate .mini{display:flex; gap:6px;} .gate .mini i{width:26px; height:40px; border-radius:6px 6px 10px 10px; display:block;}
+</style>
+</head>
+<body>
+
+  <div class="gate" id="gate">
+    <div class="mini">
+      <i style="background:var(--k1)"></i><i style="background:var(--k2)"></i><i style="background:var(--k3)"></i>
+      <i style="background:var(--k4)"></i><i style="background:var(--k5)"></i><i style="background:var(--k6)"></i>
+      <i style="background:var(--k7)"></i><i style="background:var(--k8)"></i>
+    </div>
+    <h1>Silas's Piano</h1>
+    <p>Tap to start playing</p>
+    <button class="go" id="goBtn">▶ Play</button>
+  </div>
+
+  <div class="bar">
+    <span class="title">🎵 Silas</span>
+    <div class="switch" id="switch">
+      <button data-view="piano" class="on">Piano</button>
+      <button data-view="kalimba">Kalimba</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="chip" id="labelBtn">ABC</button>
+    <button class="chip" id="freeBtn">Free</button>
+  </div>
+
+  <div class="songbar" id="songbar"></div>
+  <div class="coach" id="coach">Free play — tap anything!</div>
+  <div class="dots" id="dots"></div>
+  <div class="stage" id="stage"></div>
+
+  <div class="cele" id="cele"><div class="msg" id="celeMsg">🎉 You did it!</div></div>
+
+<script>
+/* =========================================================
+   Silas's instrument app — Piano + Kalimba, Follow-the-glow
+   Song notes are key POSITIONS 1..8 = C D E F G A B C(high).
+   Piano: positions map 1:1 to keys.
+   Kalimba(17, key of C): pos 1..7 -> tines 1..7, pos 8 -> tine 1° (next C up).
+   ========================================================= */
+
+// piano: position -> note (C4..C5)
+const NOTES = [
+  null,
+  {n:'C', sol:'do', f:261.63},  //1
+  {n:'D', sol:'re', f:293.66},  //2
+  {n:'E', sol:'mi', f:329.63},  //3
+  {n:'F', sol:'fa', f:349.23},  //4
+  {n:'G', sol:'so', f:392.00},  //5
+  {n:'A', sol:'la', f:440.00},  //6
+  {n:'B', sol:'ti', f:493.88},  //7
+  {n:'C', sol:'do', f:523.25},  //8 (high C)
+];
+
+// kalimba: 17 tines in ASCENDING pitch order (also number order). C5..E7.
+// dotClass = pitch-class color; songPos links to song positions 1..8 (null = not used by beginner songs)
+const TINES=[
+  {num:'1',  dots:0, n:'C',sol:'do',f:523.25, c:'d1', songPos:1},
+  {num:'2',  dots:0, n:'D',sol:'re',f:587.33, c:'d2', songPos:2},
+  {num:'3',  dots:0, n:'E',sol:'mi',f:659.25, c:'d3', songPos:3},
+  {num:'4',  dots:0, n:'F',sol:'fa',f:698.46, c:'d4', songPos:4},
+  {num:'5',  dots:0, n:'G',sol:'so',f:783.99, c:'d5', songPos:5},
+  {num:'6',  dots:0, n:'A',sol:'la',f:880.00, c:'d6', songPos:6},
+  {num:'7',  dots:0, n:'B',sol:'ti',f:987.77, c:'d7', songPos:7},
+  {num:'1',  dots:1, n:'C',sol:'do',f:1046.50,c:'d1', songPos:8},
+  {num:'2',  dots:1, n:'D',sol:'re',f:1174.66,c:'d2', songPos:null},
+  {num:'3',  dots:1, n:'E',sol:'mi',f:1318.51,c:'d3', songPos:null},
+  {num:'4',  dots:1, n:'F',sol:'fa',f:1396.91,c:'d4', songPos:null},
+  {num:'5',  dots:1, n:'G',sol:'so',f:1567.98,c:'d5', songPos:null},
+  {num:'6',  dots:1, n:'A',sol:'la',f:1760.00,c:'d6', songPos:null},
+  {num:'7',  dots:1, n:'B',sol:'ti',f:1975.53,c:'d7', songPos:null},
+  {num:'1',  dots:2, n:'C',sol:'do',f:2093.00,c:'d1', songPos:null},
+  {num:'2',  dots:2, n:'D',sol:'re',f:2349.32,c:'d2', songPos:null},
+  {num:'3',  dots:2, n:'E',sol:'mi',f:2637.02,c:'d3', songPos:null},
+];
+// physical left->right order (indices into TINES): lowest "1" sits dead center, notes zig-zag outward
+const KORDER=[16,14,12,10,8,6,4,2,0,1,3,5,7,9,11,13,15];
+
+// ---- SONGS: arrays of key positions 1..8. Edit freely. ----
+const SONGS = [
+  {id:'up',   name:'Walk Up',                notes:[1,2,3,4,5,6,7,8]},
+  {id:'down', name:'Walk Down',              notes:[8,7,6,5,4,3,2,1]},
+  {id:'hcb',  name:'Hot Cross Buns',         notes:[3,2,1,3,2,1,1,1,1,1,2,2,2,2,3,2,1]},
+  {id:'mary', name:'Mary Had a Little Lamb', notes:[3,2,1,2,3,3,3,2,2,2,3,5,5,3,2,1,2,3,3,3,3,2,2,3,2,1]},
+  {id:'twin', name:'Twinkle Twinkle',        notes:[1,1,5,5,6,6,5,4,4,3,3,2,2,1,5,5,4,4,3,3,2,5,5,4,4,3,3,2,1,1,5,5,6,6,5,4,4,3,3,2,2,1]},
+  {id:'ode',  name:'Ode to Joy',             notes:[3,3,4,5,5,4,3,2,1,1,2,3,3,2,2,3,3,4,5,5,4,3,2,1,1,2,3,2,1,1]},
+  {id:'mac',  name:'Old MacDonald',          notes:[1,1,1,5,6,6,5,3,3,2,2,1,5,1,1,1,5,6,6,5,3,3,2,2,1]},
+];
+
+// ---------- audio ----------
+let actx=null;
+function initAudio(){
+  if(!actx){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    // iOS 16.4+: play through the hardware mute/silent switch (toddler-proof)
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+  }
+  if(actx.state==='suspended') actx.resume();
+}
+function playNote(f, kind){
+  if(!actx) return;
+  const t=actx.currentTime, kal=(kind==='kalimba');
+  const g=actx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(kal?0.55:0.5, t+(kal?0.005:0.012));
+  g.gain.exponentialRampToValueAtTime(kal?0.12:0.22, t+(kal?0.10:0.18));
+  g.gain.exponentialRampToValueAtTime(0.0001, t+(kal?0.95:1.4));
+  const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=kal?5200:2600;
+  const o1=actx.createOscillator(); o1.type=kal?'sine':'triangle'; o1.frequency.value=f;
+  const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=f*(kal?3:2);
+  const g2=actx.createGain(); g2.gain.value=kal?0.10:0.18;
+  o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(actx.destination);
+  const stop=t+(kal?1.0:1.5);
+  o1.start(t); o2.start(t); o1.stop(stop); o2.stop(stop);
+}
+
+// ---------- state ----------
+let view='piano';                 // 'piano' | 'kalimba'
+let labelMode=1;                  // 0 color,1 letter,2 number,3 solfege
+let mode='free', song=null, idx=0;
+let posToEl={};                   // song position 1..8 -> element (for glow)
+
+const stage=document.getElementById('stage');
+const coach=document.getElementById('coach');
+const dotsEl=document.getElementById('dots');
+
+function numLabel(num,dots){ return num+(dots?('<sup>'+'•'.repeat(dots)+'</sup>'):''); }
+
+// ---------- builders ----------
+function buildPiano(){
+  stage.innerHTML='';
+  const keys=document.createElement('div'); keys.className='keys'; stage.appendChild(keys);
+  posToEl={};
+  for(let p=1;p<=8;p++){
+    const b=document.createElement('button');
+    b.className='key k'+p; b.dataset.songpos=p; b.dataset.freq=NOTES[p].f;
+    b.innerHTML='<span class="lab"></span>';
+    b.addEventListener('pointerdown',e=>{e.preventDefault(); onTap(b,'piano');});
+    keys.appendChild(b); posToEl[p]=b;
+  }
+  applyLabels();
+}
+function buildKalimba(){
+  stage.innerHTML='';
+  const k=document.createElement('div'); k.className='kalimba'; stage.appendChild(k);
+  posToEl={};
+  // height by pitch: lowest = tallest
+  const fs=TINES.map(t=>t.f); const fmin=Math.min(...fs), fmax=Math.max(...fs);
+  KORDER.forEach(i=>{
+    const t=TINES[i];
+    const col=document.createElement('button'); col.className='ktine';
+    if(t.songPos) col.dataset.songpos=t.songPos;
+    col.dataset.freq=t.f;
+    const h=100-((t.f-fmin)/(fmax-fmin))*46;     // 100%..54%
+    col.innerHTML='<div class="bar" style="height:'+h.toFixed(1)+'%">'+
+                  '<span class="dot '+t.c+'"></span>'+
+                  '<span class="knum"></span></div>';
+    col._tine=t;
+    col.addEventListener('pointerdown',e=>{e.preventDefault(); onTap(col,'kalimba');});
+    k.appendChild(col);
+    if(t.songPos) posToEl[t.songPos]=col;
+  });
+  applyLabels();
+}
+function setView(v){
+  view=v; song=song; // keep song
+  document.querySelectorAll('#switch button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  if(v==='piano') buildPiano(); else buildKalimba();
+  if(mode==='follow' && song){ showTarget(); }
+}
+
+function applyLabels(){
+  if(view==='piano'){
+    for(let p=1;p<=8;p++){
+      const lab=posToEl[p].querySelector('.lab');
+      lab.textContent = labelMode===0?'' : labelMode===1?NOTES[p].n : labelMode===2?String(p) : NOTES[p].sol;
+    }
+  } else {
+    document.querySelectorAll('.ktine').forEach(col=>{
+      const t=col._tine, el=col.querySelector('.knum');
+      if(labelMode===0) el.innerHTML='';
+      else if(labelMode===1) el.innerHTML=t.n;
+      else if(labelMode===2) el.innerHTML=numLabel(t.num,t.dots);
+      else el.innerHTML=t.sol;
+    });
+  }
+}
+
+// ---------- song buttons ----------
+const songbar=document.getElementById('songbar');
+SONGS.forEach(s=>{
+  const b=document.createElement('button'); b.className='song'; b.dataset.id=s.id;
+  b.innerHTML=s.name+(s.beta?'<span class="beta">beta</span>':'');
+  b.addEventListener('click',()=>startSong(s));
+  songbar.appendChild(b);
+});
+
+// ---------- interaction ----------
+function pressVisual(el){ el.classList.add('down'); setTimeout(()=>el.classList.remove('down'),120); }
+function onTap(el,kind){
+  initAudio(); playNote(parseFloat(el.dataset.freq), kind); pressVisual(el);
+  if(mode==='follow' && song){
+    if(idx>=song.notes.length) return;        // celebration window: free play, no scolding
+    const sp = el.dataset.songpos?parseInt(el.dataset.songpos,10):null;
+    if(sp===song.notes[idx]){
+      el.classList.remove('target'); idx++; updateDots();
+      if(idx>=song.notes.length) finishSong(); else showTarget();
+    } else {
+      nudgeTarget();                          // redirect attention to the glowing one
+    }
+  }
+}
+function nudgeTarget(){
+  if(!song || idx>=song.notes.length) return;
+  const el=posToEl[song.notes[idx]];
+  if(!el) return;
+  el.classList.remove('nudge');
+  void el.offsetWidth;                          // reflow so the one-shot animation replays
+  el.classList.add('nudge');
+  setTimeout(()=>el.classList.remove('nudge'),450);
+}
+function clearTargets(){ document.querySelectorAll('.target').forEach(e=>e.classList.remove('target')); }
+function showTarget(){ clearTargets(); if(song && idx<song.notes.length){ const el=posToEl[song.notes[idx]]; if(el) el.classList.add('target'); } }
+function updateDots(){ dotsEl.innerHTML=''; if(!song) return;
+  song.notes.forEach((n,i)=>{ const d=document.createElement('div'); d.className='dot'+(i<idx?' done':(i===idx?' now':'')); dotsEl.appendChild(d);});
+}
+function startSong(s){
+  mode='follow'; song=s; idx=0;
+  document.querySelectorAll('.song').forEach(el=>el.classList.toggle('on',el.dataset.id===s.id));
+  document.getElementById('freeBtn').classList.remove('on');
+  coach.innerHTML='Play the glowing one 🌟 <b>'+s.name+'</b>';
+  updateDots(); showTarget();
+}
+function finishSong(){
+  clearTargets(); coach.innerHTML='<b>'+song.name+'</b> — all done! 🎉'; celebrate();
+  const fin=song;
+  setTimeout(()=>{ if(mode==='follow'&&song===fin){ idx=0; updateDots(); showTarget();
+    coach.innerHTML='Again! 🌟 <b>'+fin.name+'</b>'; } },2600);
+}
+function goFree(){
+  mode='free'; song=null; idx=0; clearTargets(); dotsEl.innerHTML='';
+  document.querySelectorAll('.song').forEach(el=>el.classList.remove('on'));
+  document.getElementById('freeBtn').classList.add('on');
+  coach.textContent = view==='kalimba' ? 'Free play — pluck any tine!' : 'Free play — tap any key!';
+}
+
+// ---------- controls ----------
+document.getElementById('freeBtn').addEventListener('click',goFree);
+document.querySelectorAll('#switch button').forEach(b=>b.addEventListener('click',()=>{ setView(b.dataset.view); if(mode==='free') goFree(); }));
+document.getElementById('labelBtn').addEventListener('click',function(){
+  labelMode=(labelMode+1)%4; this.textContent=['🎨','ABC','123','do'][labelMode]; applyLabels();
+});
+
+// ---------- celebration ----------
+const cele=document.getElementById('cele'), celeMsg=document.getElementById('celeMsg');
+const CHEERS=['🎉 You did it!','⭐ Yay Silas!','🎵 Bravo!','👏 Awesome!'];
+function celebrate(){ celeMsg.textContent=CHEERS[Math.floor(Math.random()*CHEERS.length)]; cele.classList.add('show'); confetti(); setTimeout(()=>cele.classList.remove('show'),2200); }
+function confetti(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cols=['#E5392E','#F47B20','#F4C430','#7FC241','#34B6A8','#3FBEE6','#2E63D6','#E83E8C'];
+  for(let i=0;i<40;i++){ const c=document.createElement('div'); c.className='confetti';
+    c.style.left=Math.random()*100+'vw'; c.style.background=cols[i%cols.length]; c.style.transform='rotate('+Math.random()*360+'deg)';
+    document.body.appendChild(c); const dur=1500+Math.random()*1200;
+    if(c.animate){ c.animate([{transform:'translateY(0) rotate(0)',opacity:1},{transform:'translateY(108vh) rotate('+(360+Math.random()*360)+'deg)',opacity:.9}],{duration:dur,easing:'ease-in'}); }
+    setTimeout(()=>c.remove(),dur);
+  }
+}
+
+// ---------- start ----------
+document.getElementById('goBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('gate').style.display='none'; goFree(); });
+buildPiano();  // render behind gate
+
+window.__SILAS={SONGS,NOTES,TINES,KORDER,setView,startSong,goFree,onTap,
+  get state(){return {view,mode,idx,song,labelMode};}, get posToEl(){return posToEl;}};
+</script>
+</body>
+</html>

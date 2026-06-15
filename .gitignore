@@ -1,0 +1,4 @@
+node_modules/
+.claude/
+*.bak.html
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "name": "silas-piano",
+  "version": "1.0.0",
+  "description": "Rainbow piano web app for Silas — on-screen keyboard + Follow-the-glow song mode, matched to his Baby Einstein x Hape Magic Touch piano.",
+  "scripts": {
+    "test": "node test/test_logic.js && node test/test_dom.js",
+    "test:logic": "node test/test_logic.js",
+    "test:dom": "node test/test_dom.js",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "license": "MIT"
+}
