@@ -101,13 +101,16 @@ served from `main` / root over https.
 - **Update = push:** edit files → commit → `git push`; Pages auto-rebuilds in ~30–60s.
 - **Version badge:** bump `APP_VERSION` (in the start `<script>`, search "BUMP THIS") on every push.
   It renders on the start gate so you can confirm at a glance the iPad loaded the latest build.
-- **iPad cache:** the home-screen PWA caches the old HTML. To force the new version: open the live
-  URL in **Safari** (not the home-screen icon), reload, confirm the version badge updated, then the
-  home-screen app follows. A true fix (service worker w/ versioned cache) is the parked offline task.
+- **iPad cache:** the home-screen PWA caches the old HTML. The `sw.js` service worker is
+  **network-first**, so an online launch always pulls the latest push (stale-cache mostly solved);
+  when fully offline it serves the last cached copy. If a build still looks stale, open the live URL
+  in **Safari**, reload, and confirm the version badge updated.
+- **Offline:** `sw.js` precaches the app shell (index, manifest, icons) on first online visit, so the
+  app cold-launches with no network at all. `CACHE` name in `sw.js` only needs bumping to hard-evict.
 - On the iPad: open the live URL in Safari → Share → **Add to Home Screen**. Re-add after an
   icon change (iOS snapshots the icon at add-time).
-- https here is what unlocks the future mic-calibration feature (getUserMedia) and a service
-  worker (not yet added — the next lever if cold-launch still isn't instant).
+- https unlocks the mic-calibration feature (getUserMedia) and the service worker (`sw.js`, now
+  added — network-first caching for offline launch + fresh-on-push updates).
 - `npm run serve` (LAN http on :8000) still works for quick local testing, but the iPad should
   use the Pages URL so launch no longer depends on the Mac being awake.
 
@@ -127,7 +130,8 @@ PWA assets: `manifest.webmanifest` + `icon-152/180/512.png` (generated from `ico
    oscillator/envelope presets + a timbre switcher. Kalimba already gives timbre contrast.
 
 Done: usage telemetry (local + parent-gated export), drums, 4 new piano songs (London Bridge,
-Jingle Bells, Row Your Boat, Rain Rain Go Away), Happy Birthday on kalimba.
+Jingle Bells, Row Your Boat, Rain Rain Go Away), Happy Birthday on kalimba, version badge on the
+start gate, service worker (`sw.js`) for offline + fresh-on-push updates.
 
 ## Style notes for edits
 - Keep it a single self-contained `index.html`. No frameworks, no runtime deps.

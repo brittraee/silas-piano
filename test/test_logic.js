@@ -58,5 +58,14 @@ console.log('\nWrong-note handling:');
   r.tap(s.notes[1]); ok(r.idx===2,'recovers and continues');
 }
 
+console.log('\nService worker (offline):');
+ok(fs.existsSync(require('path').join(__dirname,'..','sw.js')),'sw.js present at repo root');
+ok(/serviceWorker\.register\(['"]\.\/sw\.js['"]\)/.test(html),'index.html registers ./sw.js');
+{
+  const sw=fs.readFileSync(require('path').join(__dirname,'..','sw.js'),'utf8');
+  ok(/addEventListener\(['"]fetch['"]/.test(sw),'sw.js handles fetch (network-first w/ cache fallback)');
+  ok(/index\.html/.test(sw),'sw.js precaches the app shell');
+}
+
 console.log('\n'+(fail===0?'ALL PASS ✅':(fail+' FAILED ❌')));
 process.exit(fail?1:0);

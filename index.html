@@ -538,8 +538,10 @@ function openExport(){
 
 // ---------- start ----------
 // BUMP THIS on every push so the start screen shows whether the iPad has the latest.
-const APP_VERSION='v1.1 · 2026-06-15';
+const APP_VERSION='v1.2 · 2026-06-15';
 document.getElementById('ver').textContent=APP_VERSION;
+// service worker: offline support + network-first updates (https/Pages only; silent if unsupported)
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
 document.getElementById('goBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('gate').style.display='none'; goFree(); logEv('session_start',{}); });
 buildPiano();  // render behind gate
 
