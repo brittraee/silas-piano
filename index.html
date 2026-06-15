@@ -129,6 +129,7 @@
   .gate{position:fixed; inset:0; z-index:50; background:radial-gradient(120% 120% at 50% 0%, #2a2740, #15131d);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;}
   .gate h1{margin:0; font-size:2rem;} .gate p{margin:0; color:var(--muted);}
+  .gate .ver{font-size:.75rem; color:#6f698a; letter-spacing:.4px; margin-top:2px;}
   .gate .go{margin-top:6px; background:#7a5cff; color:#fff; border:none; border-radius:16px; padding:16px 40px;
     font-size:1.3rem; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:0 6px 0 #5a3fd6;}
   .gate .go:active{transform:translateY(4px); box-shadow:0 2px 0 #5a3fd6;}
@@ -146,6 +147,7 @@
     <h1>Silas's Piano</h1>
     <p>Tap to start playing</p>
     <button class="go" id="goBtn">▶ Play</button>
+    <p class="ver" id="ver"></p>
   </div>
 
   <div class="bar">
@@ -535,10 +537,13 @@ function openExport(){
 })();
 
 // ---------- start ----------
+// BUMP THIS on every push so the start screen shows whether the iPad has the latest.
+const APP_VERSION='v1.1 · 2026-06-15';
+document.getElementById('ver').textContent=APP_VERSION;
 document.getElementById('goBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('gate').style.display='none'; goFree(); logEv('session_start',{}); });
 buildPiano();  // render behind gate
 
-window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','jing','tri'],setView,startSong,goFree,onTap,onDrum,playDrum,renderSongbar,logEv,
+window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','jing','tri'],APP_VERSION,setView,startSong,goFree,onTap,onDrum,playDrum,renderSongbar,logEv,
   get state(){return {view,mode,idx,song,labelMode};}, get posToEl(){return posToEl;}, get tineToEl(){return tineToEl;}};
 </script>
 </body>

@@ -99,6 +99,11 @@ npm run serve        # python3 http.server on :8000 for manual testing
 **Live:** https://brittraee.github.io/silas-piano/ — public GitHub Pages repo `brittraee/silas-piano`,
 served from `main` / root over https.
 - **Update = push:** edit files → commit → `git push`; Pages auto-rebuilds in ~30–60s.
+- **Version badge:** bump `APP_VERSION` (in the start `<script>`, search "BUMP THIS") on every push.
+  It renders on the start gate so you can confirm at a glance the iPad loaded the latest build.
+- **iPad cache:** the home-screen PWA caches the old HTML. To force the new version: open the live
+  URL in **Safari** (not the home-screen icon), reload, confirm the version badge updated, then the
+  home-screen app follows. A true fix (service worker w/ versioned cache) is the parked offline task.
 - On the iPad: open the live URL in Safari → Share → **Add to Home Screen**. Re-add after an
   icon change (iOS snapshots the icon at add-time).
 - https here is what unlocks the future mic-calibration feature (getUserMedia) and a service

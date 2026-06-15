@@ -34,6 +34,10 @@ const pianoSongs=API.SONGS.filter(s=>!s.kal).length;   // kalimba-only songs are
 ok(d.querySelectorAll('.song').length===pianoSongs,pianoSongs+' piano song buttons rendered');
 ok(API.SONGS.every(s=>s.id!=='ants'),'Ants Go Marching removed from song list');
 
+// version badge on the start gate (so you can see at a glance if the iPad has the latest)
+ok(/\S/.test(d.getElementById('ver').textContent),'version badge shows on start gate ("'+d.getElementById('ver').textContent+'")');
+ok(d.getElementById('ver').textContent===API.APP_VERSION,'gate version matches APP_VERSION');
+
 // press start gate
 tap(d.getElementById('goBtn')); d.getElementById('goBtn').click();
 ok(d.getElementById('gate').style.display==='none','start gate dismissed');
