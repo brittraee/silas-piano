@@ -8,11 +8,14 @@ const w=dom.window, d=w.document;
 
 // stub Web Audio so initAudio()/playNote() don't throw in jsdom
 const noop=()=>({});
-function FakeCtx(){ this.state='running'; this.currentTime=0; this.destination={}; }
+const param=()=>({value:0,setValueAtTime:noop,exponentialRampToValueAtTime:noop});
+function FakeCtx(){ this.state='running'; this.currentTime=0; this.destination={}; this.sampleRate=44100; }
 FakeCtx.prototype.resume=function(){this.state='running';};
-FakeCtx.prototype.createGain=function(){return {gain:{setValueAtTime:noop,exponentialRampToValueAtTime:noop,value:0},connect:noop};};
-FakeCtx.prototype.createBiquadFilter=function(){return {type:'',frequency:{value:0},connect:noop};};
-FakeCtx.prototype.createOscillator=function(){return {type:'',frequency:{value:0},connect:noop,start:noop,stop:noop};};
+FakeCtx.prototype.createGain=function(){return {gain:param(),connect:noop};};
+FakeCtx.prototype.createBiquadFilter=function(){return {type:'',frequency:param(),Q:param(),connect:noop};};
+FakeCtx.prototype.createOscillator=function(){return {type:'',frequency:param(),connect:noop,start:noop,stop:noop};};
+FakeCtx.prototype.createBuffer=function(_c,n){return {getChannelData:()=>new Float32Array(n||8)};};
+FakeCtx.prototype.createBufferSource=function(){return {buffer:null,connect:noop,start:noop,stop:noop};};
 w.AudioContext=FakeCtx; w.webkitAudioContext=FakeCtx;
 
 // pointer events: jsdom lacks PointerEvent; map to MouseEvent so listeners fire
@@ -27,7 +30,8 @@ function tapPos(p){ tap(API.posToEl[p]); }
 
 // piano renders behind the gate
 ok(d.querySelectorAll('.key').length===8,'8 piano keys rendered');
-ok(d.querySelectorAll('.song').length===API.SONGS.length,API.SONGS.length+' song buttons rendered');
+const pianoSongs=API.SONGS.filter(s=>!s.kal).length;   // kalimba-only songs are hidden on piano
+ok(d.querySelectorAll('.song').length===pianoSongs,pianoSongs+' piano song buttons rendered');
 ok(API.SONGS.every(s=>s.id!=='ants'),'Ants Go Marching removed from song list');
 
 // press start gate
@@ -85,6 +89,40 @@ ok(API.posToEl[up.notes[0]].classList.contains('target'),'kalimba target still g
 // play Walk Up through on the kalimba
 up.notes.forEach(p=>tapPos(p));
 ok(API.state.idx>=up.notes.length || API.state.idx===0,'kalimba song completed (idx='+API.state.idx+')');
+
+// ---------- KALIMBA-RANGE song (Happy Birthday, tine indices not 1..8) ----------
+const hbd=API.SONGS.find(s=>s.id==='hbd');
+ok(hbd && hbd.kal && Array.isArray(hbd.tines),'Happy Birthday is a kalimba-only (tines) song');
+ok(d.querySelector('.song[data-id="hbd"]')!==null,'Happy Birthday shows in the kalimba songbar');
+API.startSong(hbd);
+ok(API.state.mode==='follow' && API.state.idx===0,'Happy Birthday loaded, idx 0');
+ok(d.querySelector('.ktine.target')!==null,'a kalimba target tine glows for a tines-based song');
+// wrong tine: no advance, no scold
+const firstTine=hbd.tines[0], wrongTine=firstTine===0?1:0;
+tap(API.tineToEl[wrongTine]);
+ok(API.state.idx===0,'Happy Birthday wrong tine does not advance');
+ok(d.querySelector('.wrong')===null,'Happy Birthday wrong tine adds no "wrong" class');
+ok(API.tineToEl[firstTine].classList.contains('target'),'Happy Birthday target tine still glows after wrong tap');
+// play it through via tine indices
+hbd.tines.forEach(i=>tap(API.tineToEl[i]));
+ok(API.state.idx>=hbd.tines.length || API.state.idx===0,'Happy Birthday completed via tines (idx='+API.state.idx+')');
+
+// Happy Birthday must NOT appear on piano (only 8 keys = one octave)
+API.setView('piano');
+ok(d.querySelector('.song[data-id="hbd"]')===null,'Happy Birthday hidden on piano');
+ok(API.state.mode==='free','switching to piano during a kalimba-only song drops to free play');
+
+// ---------- DRUMS (free play) ----------
+API.setView('drums');
+ok(API.state.view==='drums','switched to drums view');
+ok(d.querySelectorAll('.pad').length===5,'5 drum pads rendered');
+ok(d.getElementById('songbar').style.display==='none','songbar hidden in drums view');
+ok(d.getElementById('labelBtn').style.display==='none','label chip hidden in drums view');
+let drumThrew=false;
+try{ tap(d.querySelector('.pad.mid')); tap(d.querySelector('.pad.cym')); }catch(e){ drumThrew=true; }
+ok(!drumThrew,'tapping drum pads does not throw');
+ok(API.state.mode==='free','drums are free-play (no follow mode)');
+API.setView('piano');   // restore for the free-play check below
 
 // ---------- back to free ----------
 d.getElementById('freeBtn').click();

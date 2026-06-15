@@ -8,8 +8,9 @@ melodies on his physical toy piano. The iPad app mirrors the toy and runs the gu
 "Follow the glow" mode. Everything lives in `index.html` — no build step, no framework,
 no dependencies at runtime (tests use jsdom as a devDependency only).
 
-Two instruments, switchable from the top bar: **Piano** (8 keys, mirrors the toy) and
-**Kalimba** (17-tine thumb piano). Songs are shared across both — see Song data format.
+Three instruments, switchable from the top bar: **Piano** (8 keys, mirrors the toy),
+**Kalimba** (17-tine thumb piano), and **Drums** (5 synthesized percussion pads, free-play
+only — no follow mode). Pitched songs are shared across piano + kalimba — see Song data format.
 
 ## The hardware it mirrors (important constraints)
 - Toy: **Baby Einstein × Hape "Magic Touch" piano** — flat wooden surface, touch-sensitive
@@ -47,6 +48,9 @@ Songs are a plain array near the top of the `<script>` in `index.html`:
 - To add/fix a song, edit only this array. Tests will validate range + completability.
 - **Kalimba mapping:** song positions 1..7 → the kalimba's lowest do→ti tines, position 8 → the
   next C up (`do` one octave higher). Songs only use positions 1..8, so every note has a tine.
+- **Kalimba-only songs** (`kal:true`) carry `tines:[…]` instead of `notes` — indices 0..16 into
+  `TINES`. Used for melodies wider than one octave (e.g. Happy Birthday, do=C6) that the 8-key
+  piano can't play. They render only in kalimba view; follow-mode matches `el.dataset.tidx`.
 
 ## Architecture (all in index.html)
 - `NOTES[1..8]` — piano: position → `{n, sol, f}` (letter, solfège, frequency in Hz).
@@ -56,14 +60,24 @@ Songs are a plain array near the top of the `<script>` in `index.html`:
 - `SONGS[]` — the shared song list above.
 - Web Audio synth in `playNote(freq, kind)` — `kind` `'piano'` (triangle + octave sine) or
   `'kalimba'` (brighter sine + faster decay). Takes a frequency, not a position.
-- `buildPiano()` / `buildKalimba()` render the active instrument into `#stage`; `setView(v)`
-  switches between them and rebuilds. `posToEl{}` maps song position 1..8 → the live DOM element
-  (key or tine) so glow/nudge targeting works for either instrument.
-- Follow-mode reducer lives in `onTap(el, kind)`: reads `el.dataset.songpos`; correct→advance +
-  dots + target glow; wrong→`nudgeTarget()`; complete→celebrate→loop. Guards against taps during
-  the celebration window (`idx >= notes.length`).
-- `window.__SILAS` is a test hook exposing
-  `{SONGS, NOTES, TINES, KORDER, setView, startSong, goFree, onTap, state, posToEl}`.
+- `playDrum(kind)` + `noiseBuf(dur)` — fully synthesized percussion (no audio files): `mid` kick,
+  `edge` rim/snare, `cym` cymbal, `jing` jingle, `tri` triangle. Free-play only.
+- `buildPiano()` / `buildKalimba()` / `buildDrums()` render the active instrument into `#stage`;
+  `setView(v)` switches between them and rebuilds. `posToEl{}` maps song position 1..8 and
+  `tineToEl{}` maps tine index 0..16 → the live DOM element, so glow/nudge targeting works for
+  normal songs (either instrument) and kalimba-range songs.
+- Follow-mode reducer lives in `onTap(el, kind)`. Sequence helpers `curSeq()` / `seqElAt(i)` /
+  `tapMatches(el)` unify normal (`songpos`) and kalimba-range (`tidx`) songs: correct→advance +
+  dots + target glow; wrong→`nudgeTarget()`; complete→celebrate→loop. Guards taps during the
+  celebration window (`idx >= curSeq().length`). `onDrum(kind, el)` is the free-play drum handler.
+- `renderSongbar()` rebuilds the song chips per view (hidden on drums; kalimba-only songs shown
+  only in kalimba view).
+- **Telemetry** (`logEv(ev,data)`): appends events (taps w/ correct flag, song_start/_done, drum,
+  view, session_start) to `localStorage['silas_telemetry']`, capped at 5000, fully wrapped in
+  try/catch so it never breaks play. **Parent gate:** a 1.5s long-press on the top-bar title
+  (`openExport()`) opens an overlay with JSON/CSV download + Clear. Local only, no network.
+- `window.__SILAS` is a test hook exposing `{SONGS, NOTES, TINES, KORDER, DRUMS, setView,
+  startSong, goFree, onTap, onDrum, playDrum, renderSongbar, logEv, state, posToEl, tineToEl}`.
   Keep it; the DOM test depends on it.
 
 ## Tests
@@ -74,10 +88,11 @@ npm run serve        # python3 http.server on :8000 for manual testing
 ```
 - `test/test_logic.js` — parses SONGS/NOTES from the HTML, validates ranges, simulates the
   reducer (perfect play completes; wrong notes hold position).
-- `test/test_dom.js` — loads the real app in jsdom, stubs Web Audio, dispatches taps via the
-  live `posToEl` map. Asserts start gate, label toggle, and full follow-mode flow on **both**
-  piano and kalimba: glow targeting, no-fail (wrong tap adds no `wrong` class + target persists),
-  celebration-window guard, song completion, free-play return.
+- `test/test_dom.js` — loads the real app in jsdom, stubs Web Audio (incl. buffer source + param
+  ramps for drums), dispatches taps via the live `posToEl`/`tineToEl` maps. Asserts start gate,
+  label toggle, follow-mode on **piano and kalimba**, the **kalimba-range** Happy Birthday flow
+  (tine-index targeting, hidden on piano, drops to free on view switch), and **drums** (5 pads,
+  songbar/label hidden, taps don't throw). No-fail invariants checked throughout (no `wrong` class).
 - Both resolve `index.html` from repo root regardless of cwd.
 
 ## Deploy (iPad target)
@@ -103,6 +118,11 @@ PWA assets: `manifest.webmanifest` + `icon-152/180/512.png` (generated from `ico
    that key's *actual* frequency (autocorrelation / YIN), then matches live input against his
    8 measured pitches instead of textbook ones. Monophonic only; frame accuracy as "approximate."
 3. Optional: lock orientation, a parent gate on settings, simple session progress.
+4. **Marimba / xylophone timbres** — parked. Discussed but never built; would be a few
+   oscillator/envelope presets + a timbre switcher. Kalimba already gives timbre contrast.
+
+Done: usage telemetry (local + parent-gated export), drums, 4 new piano songs (London Bridge,
+Jingle Bells, Row Your Boat, Rain Rain Go Away), Happy Birthday on kalimba.
 
 ## Style notes for edits
 - Keep it a single self-contained `index.html`. No frameworks, no runtime deps.

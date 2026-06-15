@@ -18,9 +18,12 @@ ok(NOTES.length===9 && NOTES[0]===null, '9 slots, index 0 is null (1-based)');
 for(let p=1;p<=8;p++) ok(NOTES[p]&&typeof NOTES[p].f==='number', 'pos '+p+' = '+NOTES[p].n+' '+NOTES[p].f+'Hz');
 
 console.log('\nSongs: '+SONGS.length+' loaded');
+// normal songs use positions 1..8; kalimba-only songs (s.kal) use tine indices 0..16 in s.tines
+const seqOf=s=>s.tines||s.notes;
 for(const s of SONGS){
-  const bad = s.notes.filter(n=>!Number.isInteger(n)||n<1||n>8);
-  ok(bad.length===0, s.name+' ('+s.notes.length+' notes) all in range 1..8'+(s.beta?'  [beta]':''));
+  const seq=seqOf(s), lo=s.tines?0:1, hi=s.tines?16:8;
+  const bad = seq.filter(n=>!Number.isInteger(n)||n<lo||n>hi);
+  ok(bad.length===0, s.name+' ('+seq.length+(s.kal?' tines':' notes')+') all in range '+lo+'..'+hi+(s.beta?'  [beta]':''));
 }
 
 // ---- simulate the exact follow-mode reducer from the app ----
@@ -29,10 +32,10 @@ function reducer(){
     idx:0, done:false,
     tap(pos){
       if(this.done) return;
-      if(pos===this.song.notes[this.idx]){ this.idx++; if(this.idx>=this.song.notes.length) this.done=true; }
+      if(pos===this.seq[this.idx]){ this.idx++; if(this.idx>=this.seq.length) this.done=true; }
       // wrong note: no-op (matches app: plays sound, no advance)
     },
-    load(s){ this.song=s; this.idx=0; this.done=false; }
+    load(s){ this.song=s; this.seq=seqOf(s); this.idx=0; this.done=false; }
   };
 }
 
@@ -40,8 +43,8 @@ console.log('\nEnd-to-end follow simulation:');
 for(const s of SONGS){
   const r=reducer(); r.load(s);
   // play perfect sequence
-  s.notes.forEach(n=>r.tap(n));
-  ok(r.done && r.idx===s.notes.length, s.name+': perfect play completes ('+r.idx+'/'+s.notes.length+')');
+  seqOf(s).forEach(n=>r.tap(n));
+  ok(r.done && r.idx===seqOf(s).length, s.name+': perfect play completes ('+r.idx+'/'+seqOf(s).length+')');
 }
 
 // wrong notes must not advance
