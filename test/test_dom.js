@@ -13,7 +13,7 @@ function FakeCtx(){ this.state='running'; this.currentTime=0; this.destination={
 FakeCtx.prototype.resume=function(){this.state='running';};
 FakeCtx.prototype.createGain=function(){return {gain:param(),connect:noop};};
 FakeCtx.prototype.createBiquadFilter=function(){return {type:'',frequency:param(),Q:param(),connect:noop};};
-FakeCtx.prototype.createOscillator=function(){return {type:'',frequency:param(),connect:noop,start:noop,stop:noop};};
+FakeCtx.prototype.createOscillator=function(){return {type:'',frequency:param(),detune:param(),connect:noop,start:noop,stop:noop};};
 FakeCtx.prototype.createBuffer=function(_c,n){return {getChannelData:()=>new Float32Array(n||8)};};
 FakeCtx.prototype.createBufferSource=function(){return {buffer:null,connect:noop,start:noop,stop:noop};};
 w.AudioContext=FakeCtx; w.webkitAudioContext=FakeCtx;
@@ -116,14 +116,38 @@ API.setView('piano');
 ok(d.querySelector('.song[data-id="hbd"]')===null,'Happy Birthday hidden on piano');
 ok(API.state.mode==='free','switching to piano during a kalimba-only song drops to free play');
 
+// ---------- STRINGS follow (guitar/harp/dulcimer voices; 8 strings = positions 1..8) ----------
+API.setView('strings');
+ok(API.state.view==='strings','switched to strings view');
+ok(d.querySelectorAll('.gstring').length===8,'8 strings rendered');
+ok(d.getElementById('timbreBtn').style.display!=='none','timbre chip visible in strings view');
+const sup=API.SONGS.find(s=>s.id==='up');   // Walk Up: 1..8, exercises every string
+API.startSong(sup);
+ok(API.state.mode==='follow' && API.state.idx===0,'Walk Up loaded on strings, idx 0');
+ok(d.querySelector('.gstring.target')!==null,'a target string is glowing');
+const sWrong=sup.notes[0]===5?1:5;
+tap(API.posToEl[sWrong]);
+ok(API.state.idx===0,'strings wrong tap does not advance');
+ok(d.querySelector('.wrong')===null,'strings wrong tap adds no "wrong" class');
+ok(API.posToEl[sup.notes[0]].classList.contains('target'),'strings target still glows after a wrong tap');
+// cycle the timbre voice mid-song, then play through — must not throw on any voice
+let stringThrew=false;
+try{ d.getElementById('timbreBtn').click(); sup.notes.forEach(p=>tapPos(p)); }catch(e){ stringThrew=true; }
+ok(!stringThrew,'plucking strings (and switching timbre) does not throw');
+ok(API.state.idx>=sup.notes.length || API.state.idx===0,'strings song completed (idx='+API.state.idx+')');
+
 // ---------- DRUMS (free play) ----------
 API.setView('drums');
 ok(API.state.view==='drums','switched to drums view');
 ok(d.querySelectorAll('.pad').length===5,'5 drum pads rendered');
+ok(d.querySelector('.pad.shake')!==null,'shaker pad present (replaces jingle)');
+ok(d.querySelector('.pad.jing')===null,'jingle pad removed');
+ok(d.querySelector('.pad.shake svg')!==null,'shaker pad has a drawn shape (not a plain circle)');
+ok(d.querySelector('.pad.tri svg')!==null,'triangle pad has a drawn shape (not a plain circle)');
 ok(d.getElementById('songbar').style.display==='none','songbar hidden in drums view');
 ok(d.getElementById('labelBtn').style.display==='none','label chip hidden in drums view');
 let drumThrew=false;
-try{ tap(d.querySelector('.pad.mid')); tap(d.querySelector('.pad.cym')); }catch(e){ drumThrew=true; }
+try{ tap(d.querySelector('.pad.mid')); tap(d.querySelector('.pad.cym')); tap(d.querySelector('.pad.shake')); }catch(e){ drumThrew=true; }
 ok(!drumThrew,'tapping drum pads does not throw');
 ok(API.state.mode==='free','drums are free-play (no follow mode)');
 API.setView('piano');   // restore for the free-play check below

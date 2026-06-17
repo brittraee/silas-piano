@@ -40,10 +40,13 @@
   .chip:active{transform:scale(.96);}
   .chip.on{background:#4c8bf5; border-color:#4c8bf5;}
 
-  /* instrument switch */
-  .switch{display:flex; background:var(--bg2); border:1px solid #3a3556; border-radius:999px; overflow:hidden;}
-  .switch button{background:none; border:none; color:var(--muted); font-family:inherit; font-weight:800;
-    font-size:.88rem; padding:8px 14px; cursor:pointer;}
+  /* instrument switch — own full-width row so every instrument is a big touch target on phones */
+  .switch{display:flex; margin:0 12px 4px; flex:0 0 auto; background:var(--bg2);
+    border:1px solid #3a3556; border-radius:14px; overflow:hidden;}
+  .switch button{flex:1 1 0; min-width:0; background:none; border:none; color:var(--muted); font-family:inherit; font-weight:800;
+    font-size:.74rem; padding:8px 4px 7px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; line-height:1.05;}
+  .switch button b{font-size:1.25rem; font-weight:400;}
+  .switch button:active{transform:scale(.97);}
   .switch button.on{background:#7a5cff; color:#fff;}
 
   .songbar{display:flex; gap:8px; overflow-x:auto; padding:4px 12px 8px; flex:0 0 auto; scrollbar-width:none;}
@@ -98,15 +101,39 @@
   .ktine.target .dot{animation:pulse 1s ease-in-out infinite;}
   .ktine.nudge .bar{animation:nudge .45s ease;}
 
+  /* ---------- strings (guitar / harp / dulcimer) ---------- */
+  .strings{width:100%; align-self:stretch; display:flex; align-items:stretch; justify-content:center;
+    gap:clamp(4px,1.8vw,16px); background:linear-gradient(180deg,#3a2a1c,#241710);
+    border:1px solid #4a3526; border-radius:18px; padding:12px clamp(8px,3vw,22px);
+    box-shadow:inset 0 3px 10px rgba(0,0,0,.45), 0 6px 0 rgba(0,0,0,.25);}
+  .gstring{flex:1 1 0; min-width:0; position:relative; background:none; border:none; cursor:pointer; padding:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;}
+  .gstring .wire{position:absolute; left:50%; top:6%; bottom:30px; width:3px; transform:translateX(-50%);
+    border-radius:3px; background:linear-gradient(180deg,#ffffff,currentColor 30%,currentColor);
+    box-shadow:0 0 5px rgba(255,255,255,.35); transition:filter .12s;}
+  .gstring .lab{position:relative; z-index:2; margin-bottom:5px; font-size:clamp(.85rem,3.2vw,1.5rem); font-weight:800;
+    color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.7);}
+  .g1{color:var(--k1);} .g2{color:var(--k2);} .g3{color:var(--k3);} .g4{color:var(--k4);}
+  .g5{color:var(--k5);} .g6{color:var(--k6);} .g7{color:var(--k7);} .g8{color:var(--k8);}
+  .gstring:active .wire,.gstring.down .wire{animation:twang .4s ease;}
+  .gstring.target .wire{width:4px; filter:brightness(1.45); box-shadow:0 0 16px 5px rgba(255,255,255,.85), 0 0 5px rgba(255,255,255,.6);}
+  .gstring.target .lab{animation:pulse 1s ease-in-out infinite;}
+  .gstring.nudge .wire{animation:twang .4s ease;}
+  @keyframes twang{0%,100%{transform:translateX(-50%) scaleX(1);}25%{transform:translateX(-50%) scaleX(2.4);}
+    50%{transform:translateX(-50%) scaleX(.5);}75%{transform:translateX(-50%) scaleX(1.7);}}
+
   /* ---------- drums (free play) ---------- */
   .drumstage{width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(14px,4vh,30px); align-self:center;}
   .accents{display:flex; gap:clamp(14px,5vw,30px);}
   .pad{border:none; cursor:pointer; font-family:inherit; font-weight:800; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.3);
     box-shadow:0 6px 0 rgba(0,0,0,.3), inset 0 3px 0 rgba(255,255,255,.28); transition:transform .05s, filter .08s;}
   .pad:active,.pad.down{transform:translateY(4px); filter:brightness(1.18); box-shadow:0 2px 0 rgba(0,0,0,.3), inset 0 3px 0 rgba(255,255,255,.22);}
-  .pad.acc{width:clamp(64px,17vw,108px); height:clamp(64px,17vw,108px); border-radius:50%; font-size:clamp(.7rem,2vw,1rem);
-    display:flex; align-items:center; justify-content:center;}
-  .pad.cym{background:#c9a227;} .pad.jing{background:var(--k6);} .pad.tri{background:var(--k8);}
+  /* accent percussion: drawn instrument shapes (cymbal disc, egg shaker, triangle), not plain circles */
+  .pad.acc{width:clamp(70px,18vw,118px); height:clamp(86px,21vw,138px); background:none; box-shadow:none; padding:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;}
+  .pad.acc svg{width:clamp(56px,15vw,96px); height:clamp(56px,15vw,96px); filter:drop-shadow(0 5px 0 rgba(0,0,0,.28));}
+  .pad.acc .plab{font-size:clamp(.66rem,2vw,.95rem); font-weight:800; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.45);}
+  .pad.acc:active,.pad.acc.down{box-shadow:none; transform:translateY(4px); filter:brightness(1.18);}
   .bigdrum{position:relative; width:clamp(180px,52vw,330px); height:clamp(180px,52vw,330px);}
   .pad.edge{position:absolute; inset:0; border-radius:50%; background:#7a5cff; display:flex; align-items:flex-end; justify-content:center; padding-bottom:12px; font-size:clamp(.75rem,2.4vw,1.05rem);}
   .pad.mid{position:absolute; inset:22%; border-radius:50%; background:var(--k1); display:flex; align-items:center; justify-content:center; font-size:clamp(1rem,3vw,1.4rem);}
@@ -121,8 +148,9 @@
   .confetti{position:fixed; width:11px; height:14px; top:-20px; z-index:29; border-radius:2px;}
 
   @media (prefers-reduced-motion: reduce){
-    .key.target::after,.ktine.target .dot{animation:none; opacity:.98;}
+    .key.target::after,.ktine.target .dot,.gstring.target .lab{animation:none; opacity:.98;}
     .key.nudge,.ktine.nudge .bar{animation:none; filter:brightness(1.3);}
+    .gstring.nudge .wire,.gstring:active .wire,.gstring.down .wire{animation:none; filter:brightness(1.5);}
     .confetti{display:none;}
   }
 
@@ -152,14 +180,17 @@
 
   <div class="bar">
     <span class="title">🎵 Silas</span>
-    <div class="switch" id="switch">
-      <button data-view="piano" class="on">Piano</button>
-      <button data-view="kalimba">Kalimba</button>
-      <button data-view="drums">Drums</button>
-    </div>
     <span class="spacer"></span>
+    <button class="chip" id="timbreBtn" style="display:none">🎸 Guitar</button>
     <button class="chip" id="labelBtn">ABC</button>
     <button class="chip" id="freeBtn">Free</button>
+  </div>
+
+  <div class="switch" id="switch">
+    <button data-view="piano" class="on"><b>🎹</b>Piano</button>
+    <button data-view="kalimba"><b>🎶</b>Kalimba</button>
+    <button data-view="strings"><b>🎸</b>Strings</button>
+    <button data-view="drums"><b>🥁</b>Drums</button>
   </div>
 
   <div class="songbar" id="songbar"></div>
@@ -171,9 +202,11 @@
 
 <script>
 /* =========================================================
-   Silas's instrument app — Piano + Kalimba, Follow-the-glow
+   Silas's instrument app — Piano + Kalimba + Strings + Drums, Follow-the-glow
    Song notes are key POSITIONS 1..8 = C D E F G A B C(high).
    Piano: positions map 1:1 to keys.
+   Strings: 8 vertical strings map 1:1 to positions 1..8 (like piano); a timbre
+            chip switches the voice between guitar / harp / dulcimer.
    Kalimba(17, key of C): pos 1..7 -> tines 1..7, pos 8 -> tine 1° (next C up).
    ========================================================= */
 
@@ -258,6 +291,32 @@ function playNote(f, kind){
   const stop=t+(kal?1.0:1.5);
   o1.start(t); o2.start(t); o1.stop(stop); o2.stop(stop);
 }
+// plucked strings — guitar (warm body), harp (bright, long ring), dulcimer (metallic shimmer, doubled course)
+function playString(f, timbre){
+  if(!actx) return;
+  const t=actx.currentTime;
+  const P = timbre==='harp'    ? {ring:1.8, lp:5000, det:0,  type:'triangle', h2:0.18, atk:0.004}
+          : timbre==='dulcimer'? {ring:2.2, lp:6500, det:9,  type:'triangle', h2:0.30, atk:0.003}
+          :                      {ring:1.5, lp:2400, det:5,  type:'sawtooth', h2:0.10, atk:0.006}; // guitar
+  const g=actx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.5, t+P.atk);
+  g.gain.exponentialRampToValueAtTime(0.16, t+0.12);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+P.ring);
+  const lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=P.lp;
+  const o1=actx.createOscillator(); o1.type=P.type; o1.frequency.value=f;
+  const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=f*2;
+  const g2=actx.createGain(); g2.gain.value=P.h2;
+  o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(actx.destination);
+  const stop=t+P.ring+0.05;
+  o1.start(t); o2.start(t); o1.stop(stop); o2.stop(stop);
+  if(P.det){ // a second slightly detuned string: course doubling (dulcimer) / chorus (guitar)
+    const o3=actx.createOscillator(); o3.type=P.type; o3.frequency.value=f;
+    if(o3.detune) o3.detune.value=P.det;
+    o3.connect(g); o3.start(t); o3.stop(stop);
+  }
+}
+function voiceFor(f, kind){ if(kind==='string') playString(f, stringTimbre); else playNote(f, kind); }
 // ---- percussion: fully synthesized, no audio files ----
 function noiseBuf(dur){
   const n=Math.floor(actx.sampleRate*dur), b=actx.createBuffer(1,n,actx.sampleRate), d=b.getChannelData(0);
@@ -282,12 +341,13 @@ function playDrum(kind){
   if(kind==='mid'){ noise(0.3,'lowpass',500,0.7,0.5,0.28); tone(180,80,0.12,0.6,0.26,'sine'); }       // kick
   else if(kind==='edge'){ noise(0.3,'bandpass',1800,1.4,0.6,0.12); tone(320,170,0.1,0.25,0.1,'sine'); } // rim/snare
   else if(kind==='cym'){ noise(0.7,'highpass',5000,0,0.33,0.6); }                                       // cymbal
-  else if(kind==='jing'){ [2100,2700,3300,3900].forEach(f=>tone(f,0,0,0.07,0.4,'square')); }            // jingle
+  else if(kind==='shake'){ noise(0.12,'bandpass',6200,1.1,0.5,0.07); noise(0.12,'highpass',9000,0,0.18,0.05); } // shaker (egg)
   else if(kind==='tri'){ tone(4200,0,0,0.12,1.1,'sine'); tone(6300,0,0,0.05,1.1,'sine'); }              // triangle
 }
 
 // ---------- state ----------
-let view='piano';                 // 'piano' | 'kalimba'
+let view='piano';                 // 'piano' | 'kalimba' | 'strings' | 'drums'
+let stringTimbre='guitar';        // strings voice: 'guitar' | 'harp' | 'dulcimer'
 let labelMode=1;                  // 0 color,1 letter,2 number,3 solfege
 let mode='free', song=null, idx=0;
 let posToEl={};                   // song position 1..8 -> element (for glow)
@@ -337,13 +397,33 @@ function buildKalimba(){
   });
   applyLabels();
 }
+// strings: 8 vertical strings, harp-style (low = longest), positions 1..8 like the piano
+function buildStrings(){
+  stage.innerHTML=''; posToEl={}; tineToEl={};
+  const wrap=document.createElement('div'); wrap.className='strings'; stage.appendChild(wrap);
+  const fmin=NOTES[1].f, fmax=NOTES[8].f;
+  for(let p=1;p<=8;p++){
+    const b=document.createElement('button'); b.className='gstring g'+p;
+    b.dataset.songpos=p; b.dataset.freq=NOTES[p].f;
+    const top=4+((NOTES[p].f-fmin)/(fmax-fmin))*42;   // 4%..46%: higher pitch starts lower = shorter string
+    b.innerHTML='<div class="wire" style="top:'+top.toFixed(1)+'%"></div><span class="lab"></span>';
+    b.addEventListener('pointerdown',e=>{e.preventDefault(); onTap(b,'string');});
+    wrap.appendChild(b); posToEl[p]=b;
+  }
+  applyLabels();
+}
 // ---------- drums (free play, no follow mode) ----------
+// drawn instrument shapes (not plain circles): a cymbal disc, an egg shaker, a percussion triangle
+const SVG_CYM='<svg viewBox="0 0 100 100"><ellipse cx="50" cy="52" rx="46" ry="38" fill="#c9a227"/><ellipse cx="50" cy="49" rx="46" ry="38" fill="#f0cf5a"/><ellipse cx="50" cy="49" rx="30" ry="24" fill="none" stroke="#c79a1e" stroke-width="2"/><ellipse cx="50" cy="49" rx="16" ry="13" fill="none" stroke="#c79a1e" stroke-width="2"/><circle cx="50" cy="49" r="5" fill="#a8780b"/></svg>';
+const SVG_SHAKE='<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="37" fill="#E83E8C"/><ellipse cx="50" cy="55" rx="25" ry="37" fill="none" stroke="#b51f63" stroke-width="2"/><ellipse cx="42" cy="36" rx="7" ry="12" fill="#fff" opacity=".30"/><circle cx="45" cy="62" r="3" fill="#fff" opacity=".7"/><circle cx="58" cy="50" r="2.5" fill="#fff" opacity=".7"/><circle cx="54" cy="73" r="2.5" fill="#fff" opacity=".7"/><circle cx="41" cy="80" r="2" fill="#fff" opacity=".7"/></svg>';
+const SVG_TRI='<svg viewBox="0 0 100 100"><line x1="50" y1="20" x2="50" y2="8" stroke="#c8a24a" stroke-width="2"/><path d="M50 20 L20 80 M50 20 L82 80 M20 80 L66 80" fill="none" stroke="#dfe6ec" stroke-width="7" stroke-linecap="round"/><line x1="56" y1="46" x2="92" y2="40" stroke="#b07b3a" stroke-width="5" stroke-linecap="round"/></svg>';
 function buildDrums(){
   stage.innerHTML=''; posToEl={};
   const wrap=document.createElement('div'); wrap.className='drumstage';
   const acc=document.createElement('div'); acc.className='accents';
-  [['cym','Cymbal'],['jing','Jingle'],['tri','Triangle']].forEach(([k,lab])=>{
-    const p=document.createElement('button'); p.className='pad acc '+k; p.textContent=lab;
+  [['cym','Cymbal',SVG_CYM],['shake','Shaker',SVG_SHAKE],['tri','Triangle',SVG_TRI]].forEach(([k,lab,svg])=>{
+    const p=document.createElement('button'); p.className='pad acc '+k;
+    p.innerHTML=svg+'<span class="plab">'+lab+'</span>';
     p.addEventListener('pointerdown',e=>{e.preventDefault(); onDrum(k,p);});
     acc.appendChild(p);
   });
@@ -358,8 +438,9 @@ function buildDrums(){
 function setView(v){
   view=v;
   document.querySelectorAll('#switch button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
-  if(v==='piano') buildPiano(); else if(v==='kalimba') buildKalimba(); else buildDrums();
+  if(v==='piano') buildPiano(); else if(v==='kalimba') buildKalimba(); else if(v==='strings') buildStrings(); else buildDrums();
   document.getElementById('labelBtn').style.display=(v==='drums')?'none':'';
+  document.getElementById('timbreBtn').style.display=(v==='strings')?'':'none';
   // a kalimba-only song can't play on piano; nothing follows on drums -> drop to free
   if(song && ((song.kal && v!=='kalimba') || v==='drums')) goFree();
   renderSongbar();
@@ -368,7 +449,7 @@ function setView(v){
 }
 
 function applyLabels(){
-  if(view==='piano'){
+  if(view==='piano'||view==='strings'){
     for(let p=1;p<=8;p++){
       const lab=posToEl[p].querySelector('.lab');
       lab.textContent = labelMode===0?'' : labelMode===1?NOTES[p].n : labelMode===2?String(p) : NOTES[p].sol;
@@ -412,7 +493,7 @@ function tapMatches(el){
   return sp===v;
 }
 function onTap(el,kind){
-  initAudio(); playNote(parseFloat(el.dataset.freq), kind); pressVisual(el);
+  initAudio(); voiceFor(parseFloat(el.dataset.freq), kind); pressVisual(el);
   const tappedPos = el.dataset.tidx!==undefined ? ('t'+el.dataset.tidx) : (el.dataset.songpos||'');
   if(mode==='follow' && song){
     if(idx>=curSeq().length){ logEv('tap',{pos:tappedPos,correct:null}); return; } // celebration window: free play, no scolding
@@ -461,7 +542,8 @@ function goFree(){
   document.querySelectorAll('.song').forEach(el=>el.classList.remove('on'));
   document.getElementById('freeBtn').classList.add('on');
   coach.textContent = view==='drums' ? 'Bang the drums! 🥁'
-    : view==='kalimba' ? 'Free play — pluck any tine!' : 'Free play — tap any key!';
+    : view==='kalimba' ? 'Free play — pluck any tine!'
+    : view==='strings' ? 'Free play — pluck any string!' : 'Free play — tap any key!';
 }
 
 // ---------- controls ----------
@@ -469,6 +551,11 @@ document.getElementById('freeBtn').addEventListener('click',goFree);
 document.querySelectorAll('#switch button').forEach(b=>b.addEventListener('click',()=>{ setView(b.dataset.view); if(mode==='free') goFree(); }));
 document.getElementById('labelBtn').addEventListener('click',function(){
   labelMode=(labelMode+1)%4; this.textContent=['🎨','ABC','123','do'][labelMode]; applyLabels();
+});
+const TIMBRES=[['guitar','🎸 Guitar'],['harp','🪕 Harp'],['dulcimer','🔨 Dulcimer']];
+document.getElementById('timbreBtn').addEventListener('click',function(){
+  const i=(TIMBRES.findIndex(t=>t[0]===stringTimbre)+1)%TIMBRES.length;
+  stringTimbre=TIMBRES[i][0]; this.textContent=TIMBRES[i][1]; logEv('timbre',{to:stringTimbre});
 });
 
 // ---------- celebration ----------
@@ -538,14 +625,14 @@ function openExport(){
 
 // ---------- start ----------
 // BUMP THIS on every push so the start screen shows whether the iPad has the latest.
-const APP_VERSION='v1.2 · 2026-06-15';
+const APP_VERSION='v1.3 · 2026-06-17';
 document.getElementById('ver').textContent=APP_VERSION;
 // service worker: offline support + network-first updates (https/Pages only; silent if unsupported)
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
 document.getElementById('goBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('gate').style.display='none'; goFree(); logEv('session_start',{}); });
 buildPiano();  // render behind gate
 
-window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','jing','tri'],APP_VERSION,setView,startSong,goFree,onTap,onDrum,playDrum,renderSongbar,logEv,
+window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','shake','tri'],APP_VERSION,setView,startSong,goFree,onTap,onDrum,playDrum,playString,renderSongbar,logEv,
   get state(){return {view,mode,idx,song,labelMode};}, get posToEl(){return posToEl;}, get tineToEl(){return tineToEl;}};
 </script>
 </body>
