@@ -138,6 +138,30 @@
   .pad.edge{position:absolute; inset:0; border-radius:50%; background:#7a5cff; display:flex; align-items:flex-end; justify-content:center; padding-bottom:12px; font-size:clamp(.75rem,2.4vw,1.05rem);}
   .pad.mid{position:absolute; inset:22%; border-radius:50%; background:var(--k1); display:flex; align-items:center; justify-content:center; font-size:clamp(1rem,3vw,1.4rem);}
 
+  /* ---------- transport: metronome + loop recorder (compact, calm) ---------- */
+  .transport{display:flex; align-items:center; gap:8px; padding:0 12px 4px; flex:0 0 auto;}
+  .chip.mini{padding:6px 11px; font-size:.8rem;}
+  .beatdot{width:14px; height:14px; border-radius:50%; background:#3a3556; flex:0 0 auto;}
+  .beatdot.pulse{animation:beatpulse .2s ease;}
+  @keyframes beatpulse{0%{transform:scale(2); background:#ffce4d;}100%{transform:scale(1); background:#3a3556;}}
+
+  /* ---------- beat maker (step sequencer) ---------- */
+  .beatstage{width:100%; display:flex; flex-direction:column; gap:clamp(8px,2.2vh,18px); align-self:center; justify-content:center;}
+  .beatctl{display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap;}
+  .beatctl .chip{padding:9px 16px;}
+  .tempo{display:flex; background:var(--bg2); border:1px solid #3a3556; border-radius:999px; overflow:hidden;}
+  .tempo .tbtn{background:none; border:none; color:var(--muted); font-family:inherit; font-weight:800; font-size:.95rem; padding:8px 13px; cursor:pointer;}
+  .tempo .tbtn.on{background:#7a5cff; color:#fff;}
+  .beatgrid{display:flex; flex-direction:column; gap:clamp(5px,1.5vh,11px);}
+  .beatrow{display:flex; align-items:center; gap:8px;}
+  .beatrow .blab{width:clamp(50px,14vw,78px); flex:0 0 auto; font-weight:800; font-size:clamp(.68rem,2vw,.95rem); color:var(--muted); text-align:right;}
+  .bcells{display:flex; gap:clamp(4px,1.4vw,10px); flex:1 1 0;}
+  .bcell{flex:1 1 0; height:clamp(30px,8vh,68px); min-width:0; border:2px solid #3a3556; border-radius:10px;
+    background:var(--bg2); cursor:pointer; transition:transform .05s, filter .1s; position:relative; padding:0;}
+  .bcell.on{background:var(--cc); border-color:var(--cc); box-shadow:inset 0 2px 0 rgba(255,255,255,.32);}
+  .bcell.head{outline:3px solid #ffce4d; outline-offset:1px;}
+  .bcell:active{transform:scale(.92);}
+
   @keyframes pulse{0%,100%{opacity:.55;} 50%{opacity:1;}}
   @keyframes nudge{0%,100%{transform:translateY(0);}40%{transform:translateY(-8px);}70%{transform:translateY(0);}}
 
@@ -151,6 +175,7 @@
     .key.target::after,.ktine.target .dot,.gstring.target .lab{animation:none; opacity:.98;}
     .key.nudge,.ktine.nudge .bar{animation:none; filter:brightness(1.3);}
     .gstring.nudge .wire,.gstring:active .wire,.gstring.down .wire{animation:none; filter:brightness(1.5);}
+    .beatdot.pulse{animation:none; background:#ffce4d;}
     .confetti{display:none;}
   }
 
@@ -191,6 +216,16 @@
     <button data-view="kalimba"><b>🎶</b>Kalimba</button>
     <button data-view="strings"><b>🎸</b>Strings</button>
     <button data-view="drums"><b>🥁</b>Drums</button>
+    <button data-view="beats"><b>🎛️</b>Beats</button>
+  </div>
+
+  <div class="transport" id="transport">
+    <button class="chip mini" id="metroBtn">🕐 Off</button>
+    <span class="beatdot" id="beatdot"></span>
+    <span class="spacer"></span>
+    <button class="chip mini" id="recBtn">⏺ Record</button>
+    <button class="chip mini" id="loopBtn" style="display:none">▶ Loop</button>
+    <button class="chip mini" id="loopClear" style="display:none">✕</button>
   </div>
 
   <div class="songbar" id="songbar"></div>
@@ -344,6 +379,14 @@ function playDrum(kind){
   else if(kind==='shake'){ noise(0.12,'bandpass',6200,1.1,0.5,0.07); noise(0.12,'highpass',9000,0,0.18,0.05); } // shaker (egg)
   else if(kind==='tri'){ tone(4200,0,0,0.12,1.1,'sine'); tone(6300,0,0,0.05,1.1,'sine'); }              // triangle
 }
+// metronome click — short square blip, accented on beat 1
+function playTick(accent){
+  if(!actx) return; const t=actx.currentTime;
+  const o=actx.createOscillator(); o.type='square'; o.frequency.value=accent?2000:1400;
+  const g=actx.createGain(); g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(accent?0.3:0.18,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.06);
+}
 
 // ---------- state ----------
 let view='piano';                 // 'piano' | 'kalimba' | 'strings' | 'drums'
@@ -352,6 +395,16 @@ let labelMode=1;                  // 0 color,1 letter,2 number,3 solfege
 let mode='free', song=null, idx=0;
 let posToEl={};                   // song position 1..8 -> element (for glow)
 let tineToEl={};                  // kalimba tine index 0..16 -> element (for kalimba-range songs)
+
+// transport: metronome (global play-along) + loop recorder
+let metroIdx=0, metroTimer=null, metroBeat=0;           // metroIdx: 0 Off,1 Slow,2 Med,3 Fast
+const METRO=[['Off',0],['Slow',72],['Med',104],['Fast',138]];
+let loopState='idle', loopEvents=[], loopRecT0=0, loopLen=0, loopTimers=[];   // idle | rec | play
+// beat maker (step sequencer)
+const BEAT_ROWS=[['mid','Kick','var(--k1)'],['edge','Snare','#7a5cff'],['shake','Shaker','var(--k8)'],['cym','Cymbal','#c9a227']];
+const BEAT_STEPS=8;
+let beatGrid=BEAT_ROWS.map(()=>new Array(BEAT_STEPS).fill(false));
+let beatPlaying=false, beatTimer=null, beatStep=0, beatBpm=104;
 
 const stage=document.getElementById('stage');
 const coach=document.getElementById('coach');
@@ -435,14 +488,103 @@ function buildDrums(){
   big.appendChild(edge); big.appendChild(midb);
   wrap.appendChild(acc); wrap.appendChild(big); stage.appendChild(wrap);
 }
+// ---------- beat maker (step sequencer; loops on its own, no follow mode) ----------
+function buildBeats(){
+  stopBeat(); stage.innerHTML=''; posToEl={}; tineToEl={};
+  const wrap=document.createElement('div'); wrap.className='beatstage';
+  const ctl=document.createElement('div'); ctl.className='beatctl';
+  const play=document.createElement('button'); play.className='chip beatplay'; play.id='beatPlay'; play.textContent='▶ Play';
+  play.addEventListener('click',toggleBeat);
+  const clr=document.createElement('button'); clr.className='chip'; clr.textContent='Clear'; clr.addEventListener('click',clearBeat);
+  const tempo=document.createElement('div'); tempo.className='tempo';
+  [['🐢',72],['●',104],['🐇',138]].forEach(([lab,b])=>{
+    const tb=document.createElement('button'); tb.className='tbtn'+(b===beatBpm?' on':''); tb.textContent=lab;
+    tb.addEventListener('click',()=>setBeatTempo(b,tb)); tempo.appendChild(tb);
+  });
+  ctl.appendChild(play); ctl.appendChild(clr); ctl.appendChild(tempo); wrap.appendChild(ctl);
+  const grid=document.createElement('div'); grid.className='beatgrid';
+  BEAT_ROWS.forEach((row,r)=>{
+    const rEl=document.createElement('div'); rEl.className='beatrow';
+    const lab=document.createElement('div'); lab.className='blab'; lab.textContent=row[1]; rEl.appendChild(lab);
+    const cells=document.createElement('div'); cells.className='bcells';
+    for(let s=0;s<BEAT_STEPS;s++){
+      const c=document.createElement('button'); c.className='bcell'+(beatGrid[r][s]?' on':''); c.dataset.r=r; c.dataset.s=s;
+      c.style.setProperty('--cc',row[2]);
+      c.addEventListener('pointerdown',e=>{e.preventDefault(); toggleCell(r,s,c);});
+      cells.appendChild(c);
+    }
+    rEl.appendChild(cells); grid.appendChild(rEl);
+  });
+  wrap.appendChild(grid); stage.appendChild(wrap);
+}
+function toggleCell(r,s,c){ beatGrid[r][s]=!beatGrid[r][s]; c.classList.toggle('on',beatGrid[r][s]);
+  if(beatGrid[r][s]){ initAudio(); playDrum(BEAT_ROWS[r][0]); } logEv('beat_cell',{r:r,s:s,on:beatGrid[r][s]}); }
+function beatTick(){
+  document.querySelectorAll('.bcell.head').forEach(c=>c.classList.remove('head'));
+  BEAT_ROWS.forEach((row,r)=>{
+    if(beatGrid[r][beatStep]) playDrum(row[0]);
+    const c=document.querySelector('.bcell[data-r="'+r+'"][data-s="'+beatStep+'"]'); if(c) c.classList.add('head');
+  });
+  beatStep=(beatStep+1)%BEAT_STEPS;
+}
+function toggleBeat(){
+  if(beatPlaying){ stopBeat(); return; }
+  initAudio(); beatPlaying=true; beatStep=0; const b=document.getElementById('beatPlay'); if(b) b.textContent='⏸ Stop';
+  beatTick(); beatTimer=setInterval(beatTick,60000/beatBpm); logEv('beat_play',{bpm:beatBpm});
+}
+function stopBeat(){ beatPlaying=false; if(beatTimer){clearInterval(beatTimer); beatTimer=null;}
+  const b=document.getElementById('beatPlay'); if(b) b.textContent='▶ Play';
+  document.querySelectorAll('.bcell.head').forEach(c=>c.classList.remove('head')); }
+function clearBeat(){ beatGrid=BEAT_ROWS.map(()=>new Array(BEAT_STEPS).fill(false));
+  document.querySelectorAll('.bcell.on').forEach(c=>c.classList.remove('on')); }
+function setBeatTempo(b,btn){ beatBpm=b;
+  if(beatPlaying){ clearInterval(beatTimer); beatTimer=setInterval(beatTick,60000/beatBpm); }
+  document.querySelectorAll('.tempo .tbtn').forEach(x=>x.classList.remove('on')); if(btn) btn.classList.add('on'); }
+
+// ---------- metronome (global play-along) ----------
+function metroTickFn(){ const accent=(metroBeat%4===0); playTick(accent); pulseBeat(); metroBeat++; }
+function startMetro(bpm){ stopMetro(); initAudio(); metroBeat=0; metroTickFn(); metroTimer=setInterval(metroTickFn,60000/bpm); }
+function stopMetro(){ if(metroTimer){clearInterval(metroTimer); metroTimer=null;} }
+function cycleMetro(){ metroIdx=(metroIdx+1)%METRO.length; const [lab,bpm]=METRO[metroIdx];
+  const btn=document.getElementById('metroBtn'); if(btn) btn.textContent='🕐 '+lab;
+  if(bpm) startMetro(bpm); else stopMetro(); logEv('metro',{bpm:bpm}); }
+function pulseBeat(){ const d=document.getElementById('beatdot'); if(!d) return;
+  d.classList.remove('pulse'); void d.offsetWidth; d.classList.add('pulse'); }
+
+// ---------- loop recorder (capture taps on the live instrument, loop them back) ----------
+function clearLoopTimers(){ loopTimers.forEach(clearTimeout); loopTimers=[]; }
+function loopCapture(playFn){ if(loopState==='rec') loopEvents.push({dt:Date.now()-loopRecT0, play:playFn}); }
+function scheduleLoop(){ clearLoopTimers();
+  loopEvents.forEach(e=>loopTimers.push(setTimeout(e.play,e.dt)));
+  loopTimers.push(setTimeout(()=>{ if(loopState==='play') scheduleLoop(); },loopLen));
+}
+function loopPlay(){ if(!loopEvents.length) return; loopState='play';
+  loopLen=Math.max(loopEvents[loopEvents.length-1].dt+450,700); scheduleLoop(); updateTransport(); }
+function loopStopPlay(){ clearLoopTimers(); if(loopState==='play') loopState='idle'; updateTransport(); }
+function toggleRec(){ initAudio();
+  if(loopState==='rec'){ loopState='idle'; if(loopEvents.length) loopPlay(); else updateTransport(); }
+  else { loopStopPlay(); clearLoopTimers(); loopEvents=[]; loopState='rec'; loopRecT0=Date.now(); updateTransport(); } }
+function toggleLoop(){ if(loopState==='play') loopStopPlay(); else loopPlay(); }
+function loopClearAll(){ clearLoopTimers(); loopState='idle'; loopEvents=[]; updateTransport(); }
+function updateTransport(){
+  const rec=document.getElementById('recBtn'), lp=document.getElementById('loopBtn'), cl=document.getElementById('loopClear');
+  if(!rec) return;
+  rec.textContent = loopState==='rec' ? '⏹ Stop' : '⏺ Record'; rec.classList.toggle('on',loopState==='rec');
+  const has=loopEvents.length>0;
+  lp.style.display=has?'':'none'; cl.style.display=has?'':'none';
+  lp.textContent = loopState==='play' ? '⏸ Stop' : '▶ Loop'; lp.classList.toggle('on',loopState==='play');
+}
 function setView(v){
+  if(view==='beats' && v!=='beats') stopBeat();
   view=v;
   document.querySelectorAll('#switch button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
-  if(v==='piano') buildPiano(); else if(v==='kalimba') buildKalimba(); else if(v==='strings') buildStrings(); else buildDrums();
-  document.getElementById('labelBtn').style.display=(v==='drums')?'none':'';
+  if(v==='piano') buildPiano(); else if(v==='kalimba') buildKalimba(); else if(v==='strings') buildStrings();
+  else if(v==='beats') buildBeats(); else buildDrums();
+  document.getElementById('labelBtn').style.display=(v==='drums'||v==='beats')?'none':'';
   document.getElementById('timbreBtn').style.display=(v==='strings')?'':'none';
-  // a kalimba-only song can't play on piano; nothing follows on drums -> drop to free
-  if(song && ((song.kal && v!=='kalimba') || v==='drums')) goFree();
+  document.getElementById('transport').style.display=(v==='beats')?'none':'';   // beats has its own loop+tempo
+  // a kalimba-only song can't play on piano; nothing follows on drums/beats -> drop to free
+  if(song && ((song.kal && v!=='kalimba') || v==='drums' || v==='beats')) goFree();
   renderSongbar();
   logEv('view',{to:v});
   if(mode==='follow' && song){ showTarget(); }
@@ -468,7 +610,7 @@ function applyLabels(){
 // ---------- song buttons ----------
 const songbar=document.getElementById('songbar');
 function renderSongbar(){
-  if(view==='drums'){ songbar.style.display='none'; songbar.innerHTML=''; return; }
+  if(view==='drums'||view==='beats'){ songbar.style.display='none'; songbar.innerHTML=''; return; }
   songbar.style.display=''; songbar.innerHTML='';
   // kalimba-only songs (s.kal) appear on the kalimba; everything else on both pitched instruments
   SONGS.filter(s=>!s.kal || view==='kalimba').forEach(s=>{
@@ -493,7 +635,10 @@ function tapMatches(el){
   return sp===v;
 }
 function onTap(el,kind){
-  initAudio(); voiceFor(parseFloat(el.dataset.freq), kind); pressVisual(el);
+  const f=parseFloat(el.dataset.freq);
+  initAudio(); voiceFor(f, kind); pressVisual(el);
+  if(loopState==='rec'){ const sp=el.dataset.songpos, ti=el.dataset.tidx;
+    loopCapture(()=>{ voiceFor(f,kind); const e2=(ti!==undefined?tineToEl[ti]:posToEl[sp]); if(e2) pressVisual(e2); }); }
   const tappedPos = el.dataset.tidx!==undefined ? ('t'+el.dataset.tidx) : (el.dataset.songpos||'');
   if(mode==='follow' && song){
     if(idx>=curSeq().length){ logEv('tap',{pos:tappedPos,correct:null}); return; } // celebration window: free play, no scolding
@@ -509,7 +654,8 @@ function onTap(el,kind){
     logEv('tap',{pos:tappedPos,correct:null});
   }
 }
-function onDrum(kind,el){ initAudio(); playDrum(kind); pressVisual(el); logEv('drum',{kind:kind}); }
+function onDrum(kind,el){ initAudio(); playDrum(kind); pressVisual(el); logEv('drum',{kind:kind});
+  if(loopState==='rec') loopCapture(()=>playDrum(kind)); }
 function nudgeTarget(){
   if(!song || idx>=curSeq().length) return;
   const el=seqElAt(idx);
@@ -541,7 +687,8 @@ function goFree(){
   mode='free'; song=null; idx=0; clearTargets(); dotsEl.innerHTML='';
   document.querySelectorAll('.song').forEach(el=>el.classList.remove('on'));
   document.getElementById('freeBtn').classList.add('on');
-  coach.textContent = view==='drums' ? 'Bang the drums! 🥁'
+  coach.textContent = view==='beats' ? 'Tap the squares to build a beat! 🎛️'
+    : view==='drums' ? 'Bang the drums! 🥁'
     : view==='kalimba' ? 'Free play — pluck any tine!'
     : view==='strings' ? 'Free play — pluck any string!' : 'Free play — tap any key!';
 }
@@ -557,6 +704,10 @@ document.getElementById('timbreBtn').addEventListener('click',function(){
   const i=(TIMBRES.findIndex(t=>t[0]===stringTimbre)+1)%TIMBRES.length;
   stringTimbre=TIMBRES[i][0]; this.textContent=TIMBRES[i][1]; logEv('timbre',{to:stringTimbre});
 });
+document.getElementById('metroBtn').addEventListener('click',cycleMetro);
+document.getElementById('recBtn').addEventListener('click',toggleRec);
+document.getElementById('loopBtn').addEventListener('click',toggleLoop);
+document.getElementById('loopClear').addEventListener('click',loopClearAll);
 
 // ---------- celebration ----------
 const cele=document.getElementById('cele'), celeMsg=document.getElementById('celeMsg');
@@ -625,15 +776,19 @@ function openExport(){
 
 // ---------- start ----------
 // BUMP THIS on every push so the start screen shows whether the iPad has the latest.
-const APP_VERSION='v1.3 · 2026-06-17';
+const APP_VERSION='v1.4 · 2026-06-17';
 document.getElementById('ver').textContent=APP_VERSION;
 // service worker: offline support + network-first updates (https/Pages only; silent if unsupported)
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
 document.getElementById('goBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('gate').style.display='none'; goFree(); logEv('session_start',{}); });
 buildPiano();  // render behind gate
 
-window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','shake','tri'],APP_VERSION,setView,startSong,goFree,onTap,onDrum,playDrum,playString,renderSongbar,logEv,
-  get state(){return {view,mode,idx,song,labelMode};}, get posToEl(){return posToEl;}, get tineToEl(){return tineToEl;}};
+window.__SILAS={SONGS,NOTES,TINES,KORDER,DRUMS:['mid','edge','cym','shake','tri'],BEAT_ROWS,BEAT_STEPS,APP_VERSION,
+  setView,startSong,goFree,onTap,onDrum,playDrum,playString,renderSongbar,logEv,
+  toggleBeat,stopBeat,clearBeat,toggleCell,cycleMetro,stopMetro,toggleRec,toggleLoop,loopClearAll,loopCapture,
+  get state(){return {view,mode,idx,song,labelMode,beatPlaying,loopState,metroIdx};},
+  get beatGrid(){return beatGrid;}, get loopEvents(){return loopEvents;},
+  get posToEl(){return posToEl;}, get tineToEl(){return tineToEl;}};
 </script>
 </body>
 </html>

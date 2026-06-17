@@ -152,6 +152,42 @@ ok(!drumThrew,'tapping drum pads does not throw');
 ok(API.state.mode==='free','drums are free-play (no follow mode)');
 API.setView('piano');   // restore for the free-play check below
 
+// ---------- BEATS (step sequencer) ----------
+API.setView('beats');
+ok(API.state.view==='beats','switched to beats view');
+ok(d.querySelectorAll('.bcell').length===API.BEAT_ROWS.length*API.BEAT_STEPS,'beat grid renders rows×steps cells');
+ok(d.getElementById('songbar').style.display==='none','songbar hidden in beats view');
+ok(d.getElementById('transport').style.display==='none','transport row hidden in beats view (grid has its own loop)');
+let beatThrew=false;
+try{
+  const cell=d.querySelector('.bcell[data-r="0"][data-s="0"]');
+  tap(cell);
+  ok(cell.classList.contains('on'),'tapping a cell toggles it on');
+  ok(API.beatGrid[0][0]===true,'beat grid model updated');
+  API.toggleBeat(); ok(API.state.beatPlaying===true,'beat sequencer playing');
+  API.toggleBeat(); ok(API.state.beatPlaying===false,'beat sequencer stopped');
+  API.clearBeat(); ok(API.beatGrid[0][0]===false,'clear empties the grid');
+}catch(e){ beatThrew=true; }
+ok(!beatThrew,'beat maker interactions do not throw');
+// leaving beats stops the sequencer
+API.toggleBeat(); API.setView('piano');
+ok(API.state.beatPlaying===false,'switching away from beats stops the sequencer');
+
+// ---------- METRONOME + LOOP RECORDER (transport) ----------
+let transThrew=false;
+try{
+  API.cycleMetro(); ok(API.state.metroIdx===1,'metronome cycles on (Slow)');
+  API.stopMetro();   // halt the interval so the test process exits cleanly
+  API.toggleRec(); ok(API.state.loopState==='rec','loop recording armed');
+  tapPos(1); tapPos(3);
+  ok(API.loopEvents.length===2,'two taps captured into the loop');
+  API.toggleRec(); ok(API.state.loopState==='play','stopping record auto-plays the loop');
+  ok(d.getElementById('loopBtn').style.display!=='none','loop button shows once events exist');
+  API.toggleLoop(); ok(API.state.loopState==='idle','loop toggles to stopped');
+  API.loopClearAll(); ok(API.loopEvents.length===0,'clear empties the loop');
+}catch(e){ transThrew=true; }
+ok(!transThrew,'metronome + loop recorder do not throw');
+
 // ---------- back to free ----------
 d.getElementById('freeBtn').click();
 ok(API.state.mode==='free','free button returns to free play');
